@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Panchang Diary</title><meta name="description" content="Free Hindu calendar diary with tithi for every date. Notes stay on your device.">
+<style>:root{--bg:#FFF4D9;--sf:#FFFBEF;--tx:#3A1410;--mu:#8A5A4A;--ac:#B3261E;--ln:#EBD5A5}@media(prefers-color-scheme:dark){:root{--bg:#1E1210;--sf:#2B1B17;--tx:#F7E6CC;--mu:#C49A84;--ac:#FF7A6B;--ln:#4A3029}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,sans-serif}.w{max-width:620px;margin:0 auto;padding:12px 14px}a{color:var(--ac)}input,select,button{font:inherit;padding:8px;border:1px solid var(--ln);border-radius:10px;background:var(--sf);color:var(--tx)}
+.h{background:var(--ac);color:#FFF4D9;border-radius:16px;padding:14px;margin:10px 0}.r{display:flex;gap:6px;margin:8px 0}.r input[type=text]{flex:1;min-width:0}.n{display:flex;gap:10px;align-items:center;background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:8px 12px;margin:6px 0}.n span{flex:1}.d{text-decoration:line-through;color:var(--mu)}.mu{color:var(--mu)}</style></head><body><div class="w">
+<a href="/">‹ Panchang</a><h1>Panchang Diary</h1>
+<div class="r"><input type="date" id="dt"><select id="ct"></select></div>
+<div class="h" id="hd">Loading…</div>
+<div class="r"><input type="text" id="tx" placeholder="Note, task or event"><input type="time" id="tm" aria-label="Reminder time"><button id="ad">Add</button></div>
+<label class="mu"><input type="checkbox" id="yr"> Repeat every year on this date (birthday, anniversary)</label>
+<div id="ls"></div>
+<p class="mu">Notes are saved only in this browser on this device. They are not sent to our server and are lost if you clear browser data. Reminders ring only while this page is open.</p></div>
+<script>
+const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,"0");
+const ld=k=>{try{return JSON.parse(localStorage.getItem(k))||[]}catch(e){return[]}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const t=new Date();$("#dt").value=`${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`;
+let city="delhi";try{city=localStorage.getItem("pd_city")||"delhi"}catch(e){}
+fetch("/api/cities").then(r=>r.json()).then(a=>{$("#ct").innerHTML=a.map(c=>`<option value="${c[0]}"${c[0]==city?" selected":""}>${c[1]}</option>`).join("");head()});
+function keys(){const d=$("#dt").value;return["n:"+d,"y:"+d.slice(5)]}
+function head(){const d=$("#dt").value;fetch(`/api/day/${city}/${d}`).then(r=>r.json()).then(j=>{$("#hd").innerHTML=`<b>${j.paksha} ${j.tithi}</b><br>${j.month} · ${j.nakshatra}${j.festivals.length?"<br>"+j.festivals.join(", "):""}`}).catch(()=>{$("#hd").textContent="Tithi unavailable"});draw()}
+function draw(){const ks=keys();$("#ls").innerHTML=ks.map((k,i)=>ld(k).map((x,j)=>`<div class="n"><input type="checkbox" ${x.done?"checked":""} data-k="${k}" data-j="${j}" class="cb"><span class="${x.done?"d":""}">${x.tm?"⏰ "+x.tm+" ":""}${x.t.replace(/</g,"&lt;")}${i?' <small class="mu">(every year)</small>':""}</span><button data-k="${k}" data-j="${j}" class="rm" aria-label="Delete">✕</button></div>`).join("")).join("")||'<p class="mu">Nothing yet. Add a note above.</p>'}
+$("#ls").onclick=e=>{const k=e.target.dataset.k,j=e.target.dataset.j;if(!k)return;const a=ld(k);if(e.target.className=="cb")a[j].done=!a[j].done;else a.splice(j,1);sv(k,a);draw()};
+$("#ad").onclick=()=>{const v=$("#tx").value.trim();if(!v)return;const k=$("#yr").checked?keys()[1]:keys()[0],a=ld(k);a.push({t:v,done:0,tm:$("#tm").value});sv(k,a);$("#tx").value="";if($("#tm").value&&window.Notification&&Notification.permission=="default")Notification.requestPermission();draw()};
+$("#dt").onchange=head;$("#ct").onchange=e=>{city=e.target.value;try{localStorage.setItem("pd_city",city)}catch(x){}head()};
+const fired={};setInterval(()=>{const n=new Date(),d=`${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`,hm=pad(n.getHours())+":"+pad(n.getMinutes());[...ld("n:"+d),...ld("y:"+d.slice(5))].forEach(x=>{const id=hm+x.t;if(x.tm==hm&&!x.done&&!fired[id]){fired[id]=1;try{if(Notification.permission=="granted")new Notification("Panchang Diary",{body:x.t})}catch(e){}alert("⏰ "+x.t)}})},15000);
+</script></body></html>

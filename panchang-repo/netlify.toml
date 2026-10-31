@@ -1,0 +1,10 @@
+[build]
+  publish = "public"
+  command = "echo build ok"
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+[build.environment]
+  NODE_VERSION = "20"
+  # SITE_NAME = "My Panchang"
+  # BANNER_HTML = "<a href=...>your banner</a>"
